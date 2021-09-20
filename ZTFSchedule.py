@@ -1,5 +1,3 @@
-import sys
-
 import astroplan
 from astropy.coordinates import ICRS, SkyCoord, AltAz
 from astropy import units as u

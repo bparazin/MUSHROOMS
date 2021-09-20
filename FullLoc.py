@@ -376,7 +376,7 @@ def schedule_event(prob, start_time, end_time, exptime, fields, footprints_healp
     schedule_final['block_num'] = block_change
 
     #This is the probability coverage of each field, greater than total prob coverage as fields overlap & hpx are
-    #double counted
+    #counted multiple times
     field_indices = np.asarray([np.where(fields['field_id'] == obs)[0][0] for obs in schedule_final['field_id']])
     field_prob = [np.sum(prob[footprints_healpix[field_index]]) for field_index in field_indices]
     schedule_final['field_prob'] = field_prob
