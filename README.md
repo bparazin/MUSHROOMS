@@ -55,7 +55,7 @@ Returns an astropy.table.table.Table with which is the ordered schedule.
 - slew_accel: astropy.units.quantity.Quantity, representing the maximum slew acceleration of the telescope
 - filttime: astropy.units.quantity.Quantity, representing the amount of time it takes for a filter change to happen
 - site: String representing the observing site, for use in Astroplan.Observer.at_site
-- constr: Any astroplan observing constraints, used in conjunctio with site to find observability for each field
+- constr: Any astroplan observing constraints, used in conjunction with site to find observability for each field
 
 ### Optional parameters
 
