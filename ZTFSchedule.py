@@ -82,44 +82,26 @@ def ZTF_Schedule(prob, start_time, end_time, p = [0, 0.0025, 0.005, 0.0075, 0.01
     slew_accel = 0.4 * u.deg / u.s ** 2
     readout = 8.2 * u.s
 
-    # Create table of observability constraints and footprints
-    # Select only fields that have reference images in the requested filter
-    fields = field_grid
-
-    # Observer site
-    observer = astroplan.Observer.at_site('Palomar')
-
-    # Calculate observing constraints with astroplan
-    times = start_time + np.linspace(0, 1, 10000) * (end_time - start_time)
-    observability = astroplan.is_event_observable(observing_constraints, observer, fields['coord'], times)
-
-    # Select only fields that are observable
-    keep = np.any(observability, axis=1)
-    fields = fields[keep]
-    observability = observability[keep]
-
-    # Select only fields that are observable for at least 2 exptimes with a rettime gap between (to rule out asteroids)
-    fields['observability_start_time'] = [np.min(times[observable]) for observable in observability]
-    fields['observability_end_time'] = [np.max(times[observable]) for observable in observability]
-    keep = (fields['observability_end_time'] - fields['observability_start_time'] >= 2*exptime + rettime)
-    fields = fields[keep]
+    site = 'Palomar'
 
     # Get hpix footprints
-    footprints = np.moveaxis(get_footprint(fields['coord']).cartesian.xyz.value, 0, -1)
+    footprints = np.moveaxis(get_footprint(field_grid['coord']).cartesian.xyz.value, 0, -1)
     footprints_healpix = [np.unique(
         np.concatenate([np.asarray([], dtype=np.intp)] +
                        [hp.query_polygon(hpx.nside, v, nest=(hpx.order == 'nested')) for v in footprint]))
         for footprint in footprints]
 
-    result = schedule_event(prob, start_time, end_time, exptime, fields, footprints_healpix, slew_speed, slew_accel,
-                            filttime, p=p, b_max=b_max, slew_time=slew_time,
+
+
+    result = schedule_event(prob, start_time, end_time, exptime, field_grid, footprints_healpix, slew_speed, slew_accel,
+                            filttime, site, observing_constraints, p=p, b_max=b_max, slew_time=slew_time,
                             nfield=nfield, time_limit_sales=time_limit_sales, time_limit_blocks=time_limit_blocks,
                             MIP_gap_blocks=MIP_gap_blocks, time_gap=time_gap)
     return result
 
 
 # Get Skymap
-url = r'/home/bparazin/Downloads/O3/bns_astro/allsky/296.fits'
+url = r'/home/bparazin/Downloads/O3/bns_astro/allsky/2950.fits'
 prob, _ = read_sky_map(url)
 prob = ud_grade(prob, 128, power = -2)  #power is -2 to keep skymap normalized
 
@@ -134,9 +116,9 @@ start_time = observer.twilight_evening_astronomical(event_time, 'next')
 end_time = observer.twilight_morning_astronomical(start_time, 'next')
 obstime = end_time - start_time
 
-result = ZTF_Schedule(prob, start_time, end_time)
+#result = ZTF_Schedule(prob, start_time, end_time)
 #ascii.write(result, 'test.ecsv',  format = 'ecsv')
-print(result)
+#print(result)
 '''
 if __name__ == '__main__':
     result = ZTF_Schedule(sys.argv[1], sys.argv[2], sys.argv[3])

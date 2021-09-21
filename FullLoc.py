@@ -8,6 +8,7 @@ from astropy.table import vstack
 from astropy.table import QTable
 from ligo.skymap.io import read_sky_map
 from healpy.pixelfunc import ud_grade
+import astroplan
 
 # Get the time it takes to slew a given distance. Let's hope I've done my physics 1 properly
 def getSlewTime(dist, slew_speed, slew_accel):
@@ -284,9 +285,31 @@ def salesperson(field_list, slew_speed, slew_accel, time_limit=None):
 #This is the full-sky scheduler! It takes in all the parameters listed below and first solves the MILP for a fixed slew time, before breaking that list
 #of fields up into several blocks you observe once, switch filters, and repeat, optimizing slew time within each block
 def schedule_event(prob, start_time, end_time, exptime, fields, footprints_healpix, slew_speed, slew_accel, filttime,
+                   site, constr,
                    p = [0, 0.0025, 0.005, 0.0075, 0.01, 0.02], b_max = 6, slew_time = 12 * u.s,
                    nfield = 100, time_limit_sales = 500, time_limit_blocks = 500, MIP_gap_blocks = None,
                    time_gap = None, time_start = None, nside = 128):
+
+    # Observer site
+    observer = astroplan.Observer.at_site(site)
+
+    # Calculate observing constraints with astroplan
+    times = start_time + np.linspace(0, 1, 10000) * (end_time - start_time)
+    observability = astroplan.is_event_observable(constr, observer, fields['coord'], times)
+
+    # Select only fields that are observable
+    keep = np.any(observability, axis=1)
+    fields = fields[keep]
+    footprints_healpix = [footprint_healpix for i,footprint_healpix in enumerate(footprints_healpix) if keep[i]]
+    #footprints_healpix isn't a numpy array, so we have to do it this way
+    observability = observability[keep]
+
+    # Select only fields that are observable for at least 2 exptimes between (to rule out asteroids)
+    fields['observability_start_time'] = [np.min(times[observable]) for observable in observability]
+    fields['observability_end_time'] = [np.max(times[observable]) for observable in observability]
+    keep = (fields['observability_end_time'] - fields['observability_start_time'] >= 2 * exptime)
+    fields = fields[keep]
+    footprints_healpix = [footprint_healpix for i,footprint_healpix in enumerate(footprints_healpix) if keep[i]]
 
     if type(prob) == str:
         raw_prob, _ = read_sky_map(prob)
