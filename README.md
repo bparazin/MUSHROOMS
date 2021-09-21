@@ -49,8 +49,7 @@ Returns an astropy.table.table.Table with which is the ordered schedule.
 - start_time: astropy.time.core.Time, representing the earliest start time of observations
 - end_time: astropy.time.core.Time, representing the latest end time of observations
 - exptime: astropy.units.quantity.Quantity, representing the exposure time of the telescope used
-- fields: astropy.table.table.Table of fields to look at, with columns for skycoord, field id, and observability start & end times for each field
-  - future development plans include automatically calculating the start & end times for each field
+- fields: astropy.table.table.Table of fields to look at, with columns for skycoord of field center and field id
 - footprints_healpix: list of numpy arrays, where the ith data array is a list of the healpix in the footprint of the ith field in fields
 - slew_speed: astropy.units.quantity.Quantity, representing the maximum slew speed of the telescope
 - slew_accel: astropy.units.quantity.Quantity, representing the maximum slew acceleration of the telescope
