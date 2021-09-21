@@ -181,7 +181,7 @@ def make_blocks(prob, field_list, footprints_healpix, end_time, start_time, expt
 
     t_list = [v.x for v in t_o]
 
-    p_cover = m.ObjVal
+    p_cover = m.ObjVal + p * np.sum([[np.round(v.x) for v in b_i] for b_i in B])
 
     return blocks, t_list, p_cover
 

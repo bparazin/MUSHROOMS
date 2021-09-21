@@ -101,7 +101,7 @@ def ZTF_Schedule(prob, start_time, end_time, p = [0, 0.0025, 0.005, 0.0075, 0.01
 
 
 # Get Skymap
-url = r'/home/bparazin/Downloads/O3/bns_astro/allsky/2950.fits'
+url = r'/home/bparazin/Downloads/O3/bns_astro/allsky/297.fits'
 prob, _ = read_sky_map(url)
 prob = ud_grade(prob, 128, power = -2)  #power is -2 to keep skymap normalized
 
@@ -116,7 +116,7 @@ start_time = observer.twilight_evening_astronomical(event_time, 'next')
 end_time = observer.twilight_morning_astronomical(start_time, 'next')
 obstime = end_time - start_time
 
-#result = ZTF_Schedule(prob, start_time, end_time)
+result = ZTF_Schedule(prob, start_time, end_time)
 #ascii.write(result, 'test.ecsv',  format = 'ecsv')
 #print(result)
 '''
