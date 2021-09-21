@@ -29,7 +29,7 @@ reobservations to make it fully telescope agnostic.
 
 ### schedule_event
 
-`schedule_event(prob, start_time, end_time, exptime, fields, footprints_healpix, slew_speed, slew_accel, filttime, 
+`schedule_event(prob, start_time, end_time, exptime, fields, footprints_healpix, slew_speed, slew_accel, filttime, site, constr,
 p = [0, 0.0025, 0.005, 0.0075, 0.01, 0.02], b_max = 6, slew_time = 12 * u.s,
                    nfield = 100, time_limit_sales = 500, time_limit_blocks = 500, MIP_gap_blocks = None,
                    time_gap = None, time_start = None, nside = 128):`
@@ -54,6 +54,8 @@ Returns an astropy.table.table.Table with which is the ordered schedule.
 - slew_speed: astropy.units.quantity.Quantity, representing the maximum slew speed of the telescope
 - slew_accel: astropy.units.quantity.Quantity, representing the maximum slew acceleration of the telescope
 - filttime: astropy.units.quantity.Quantity, representing the amount of time it takes for a filter change to happen
+- site: String representing the observing site, for use in Astroplan.Observer.at_site
+- constr: Any astroplan observing constraints, used in conjunctio with site to find observability for each field
 
 ### Optional parameters
 
