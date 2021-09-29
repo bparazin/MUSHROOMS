@@ -98,30 +98,3 @@ def ZTF_Schedule(prob, start_time, end_time, p = [0, 0.0025, 0.005, 0.0075, 0.01
                             nfield=nfield, time_limit_sales=time_limit_sales, time_limit_blocks=time_limit_blocks,
                             MIP_gap_blocks=MIP_gap_blocks, time_gap=time_gap)
     return result
-
-
-# Get Skymap
-url = r'/home/bparazin/Downloads/O3/bns_astro/allsky/297.fits'
-prob, _ = read_sky_map(url)
-prob = ud_grade(prob, 128, power = -2)  #power is -2 to keep skymap normalized
-
-# Event time
-event_time = Time('2020-01-05 16:24:53')
-
-# Observer site
-observer = astroplan.Observer.at_site('Palomar')
-
-# Night start and end
-start_time = observer.twilight_evening_astronomical(event_time, 'next')
-end_time = observer.twilight_morning_astronomical(start_time, 'next')
-obstime = end_time - start_time
-
-result = ZTF_Schedule(prob, start_time, end_time)
-#ascii.write(result, 'test.ecsv',  format = 'ecsv')
-#print(result)
-'''
-if __name__ == '__main__':
-    result = ZTF_Schedule(sys.argv[1], sys.argv[2], sys.argv[3])
-    if sys.argv[4] != None:
-        ascii.write(result, sys.argv[4], format = 'ecsv')
-'''
