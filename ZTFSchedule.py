@@ -15,7 +15,7 @@ from astropy.time import Time
 def ZTF_Schedule(prob, start_time, end_time, p = [0, 0.0025, 0.005, 0.0075, 0.01, 0.02],
                  filttime=u.Quantity(60, u.s), b_max=6, slew_time=15 * u.s,
                  nfield=100, precal=True, time_limit_sales=500, time_limit_blocks=500, MIP_gap_blocks=None, debug=False,
-                 time_gap=None, nside = 128):
+                 time_gap=None, nside = 128, startWithG = True):
 
     if type(prob) == str:
         raw_prob, _ = read_sky_map(prob)
@@ -98,7 +98,7 @@ def ZTF_Schedule(prob, start_time, end_time, p = [0, 0.0025, 0.005, 0.0075, 0.01
                             nfield=nfield, time_limit_sales=time_limit_sales, time_limit_blocks=time_limit_blocks,
                             MIP_gap_blocks=MIP_gap_blocks, time_gap=time_gap)
 
-    filtIsg = True
+    filtIsg = startWithG
     filt_list = []
     for i, row in enumerate(result):
         if row['filter_change']: filtIsg = not filtIsg
