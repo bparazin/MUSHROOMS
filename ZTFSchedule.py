@@ -97,12 +97,4 @@ def ZTF_Schedule(prob, start_time, end_time, p = [0, 0.0025, 0.005, 0.0075, 0.01
                             filttime, site, observing_constraints, p=p, b_max=b_max, slew_time=slew_time,
                             nfield=nfield, time_limit_sales=time_limit_sales, time_limit_blocks=time_limit_blocks,
                             MIP_gap_blocks=MIP_gap_blocks, time_gap=time_gap)
-    filtIsg = True
-    filt_list = []
-    for i, row in enumerate(result):
-        if row['filter_change']: filtIsg = not filtIsg
-        filt_list.append('g' if filtIsg else 'r')
-
-    result['filt'] = filt_list
-
     return result
