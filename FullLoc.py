@@ -109,11 +109,7 @@ def make_blocks(prob, field_list, footprints_healpix, end_time, start_time, expt
 
     #add variables, B a rank 2 tensor, and all others are column vectors
     B = np.asarray([[m.addVar(vtype = GRB.BINARY, name = f'B{j},{i}') for i in range(len(field_list))] for j in range(b_max)])
-    x = np.asarray([m.addVar(vtype = GRB.BINARY, name= f'x{i}') for i in range(len(field_list))])
     y = np.asarray([m.addVar(vtype = GRB.BINARY, name= f'y{i}') for i in range(len(prob))])
-    t_s = np.asarray([m.addVar(vtype = GRB.CONTINUOUS, name = f't_s{i}') for i in range(b_max)])
-    t_e = np.asarray([m.addVar(vtype = GRB.CONTINUOUS, name = f't_e{i}') for i in range(b_max)])
-    t_l = np.asarray([m.addVar(vtype = GRB.CONTINUOUS, name = f't_l{i}') for i in range(b_max)])
     t_o = np.asarray([m.addVar(vtype = GRB.CONTINUOUS, name = f't_s{i}') for i in range(b_max)])
     U = np.asarray([m.addVar(vtype = GRB.BINARY, name = f'U{i}') for i in range(b_max)])
 
@@ -125,46 +121,38 @@ def make_blocks(prob, field_list, footprints_healpix, end_time, start_time, expt
     #I know I repeat the for loop bounds sometimes, but b_max is always so small it doesn't matter for runtime
     #and it makes it logically easier to follow
 
-    #Constraint that you can only observe a field if it's in a block, and a field can be in a block only if it is observed
-    for i in range(len(x)):
-        m.addConstr(x[i] <= np.sum(B[:,i]))
-        for j in range(b_max):
-            m.addConstr(x[i] >= B[j, i])
-
-    #restriction on how long a block can be, considering exposure time + overhead (with fixed slew assumption)
-    #Also give lower bound on size of used blocks
+    #Lower bound on size of used blocks
     for i in range(b_max):
-        m.addConstr(t_l[i] >= np.sum(B[i]) * 2 * (exptime + slew_time).to(u.s).value + filt_time.to(u.s).value)
         m.addConstr(np.sum(B[i]) >= blocksize * U[i])
 
     #If you look at at least 1 field in a block, said block is now used to make observations
     for i in range(b_max):
-        for j in range(len(x)):
+        for j in range(len(B[i])):
             m.addConstr(U[i] >= B[i, j])
 
     #All unused blocks at the end of the night
     for i in range(1, b_max):
         m.addConstr(U[i] <= U[i-1])
 
-    #add other constraint $\sum_{e_{j}\in S_{i}} x_i \geq y_j
+    #Have to look at a field that contains a healpix pixel to look at said healpix pixel
     for j in range(len(prob)):
         if j not in total_footprint_healpix:
             m.addConstr(0 >= y[j])
         else:
-            m.addConstr(np.sum(x[footprints_inverse[total_footprint_healpix_inverse[j]]]) >=y[j])
+            m.addConstr(np.sum(B[:,footprints_inverse[total_footprint_healpix_inverse[j]]]) >=y[j])
 
 
     #restrictions on when blocks can start & stop to not observe things not visible
     for i in range(b_max):
-        m.addConstr(t_o[i] + t_l[i] <= t_e[i])
-        m.addConstr(t_o[i] >= t_s[i])
-        for j in range(len(x)):
-            m.addConstr(t_s[i] >= B[i,j] * (field_list['observability_start_time'][j]-start_time).to(u.s).value)
-            m.addConstr(t_e[i] <= B[i,j] * (field_list['observability_end_time'][j]-start_time - exptime).to(u.s).value + (1-B[i,j]) * ((end_time-start_time).to(u.s).value))
+        for j in range(len(B[i])):
+            m.addConstr(t_o[i] + np.sum(B[i]) * 2 * (exptime + slew_time).to(u.s).value + filt_time.to(u.s).value <=
+                        B[i,j] * (field_list['observability_end_time'][j]-start_time - exptime).to(u.s).value +
+                        (1-B[i,j]) * ((end_time-start_time).to(u.s).value))
+            m.addConstr(t_o[i] >= B[i,j] * (field_list['observability_start_time'][j]-start_time).to(u.s).value)
 
     #Can't start on a new block before the previous finishes
     for i in range(1, b_max):
-        m.addConstr(t_o[i] >= t_o[i-1] + t_l[i-1] + time_gap[i-1].to(u.s).value)
+        m.addConstr(t_o[i] >= t_o[i-1] + np.sum(B[i-1]) * 2 * (exptime + slew_time).to(u.s).value + filt_time.to(u.s).value + time_gap[i-1].to(u.s).value)
 
 
 
