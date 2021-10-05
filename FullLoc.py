@@ -327,11 +327,13 @@ def schedule_event(prob, start_time, end_time, exptime, fields, footprints_healp
     blocks_list = []
     t_list_list = []
     p_cover_list = []
+    block_time = dt.datetime.now()
     for i, p_i in enumerate(p):
         tblocks, tt_list, p_cover = make_blocks(prob, flist, pruned_footprint, end_time, start_time, exptime, filttime, p_i, b_max, slew_time, time_limit=time_limit_blocks, gap = MIP_gap_blocks, time_gap = time_gap)
         blocks_list.append(tblocks)
         t_list_list.append(tt_list)
         p_cover_list.append(p_cover)
+    block_time = dt.datetime.now()-block_time
 
     #ask user which p they want to go forward with scheduling, unless they only provide one, then use that
     if len(p) > 1:
@@ -427,14 +429,20 @@ def schedule_event(prob, start_time, end_time, exptime, fields, footprints_healp
     if all_observable:
         #If it is all still observable, congrats! You have a schedule
         print(f'Schedule completed in {dt.datetime.now() - time_start}')
+        runtime = np.ones(len(schedule_final)) * (dt.datetime.now() - time_start)
+        block_time = np.ones(len(schedule_final)) * block_time
+        schedule_final['runtime'] = runtime
+        schedule_final['block_runtime'] = block_time
+
         return schedule_final
     else:
         #If it is not all observable, we add in more time between the offending blocks & try again. 
         print('Encountered observability error! Rerunning schedule with greater time gaps between offending blocks')
-        while len(time_gap <= b_max - 1):
+        while len(time_gap) < b_max - 1:
             time_gap.append(0)
+        time_gap = time_gap * u.s
         return schedule_event(prob, start_time, end_time, exptime, fields, footprints_healpix, slew_speed, slew_accel,
-                   filttime, p=p, b_max = b_max, slew_time = slew_time,
+                   filttime, site, constr, p=p, b_max = b_max, slew_time = slew_time,
                    nfield = nfield, time_limit_sales = time_limit_sales,
                               time_limit_blocks = time_limit_blocks, MIP_gap_blocks = MIP_gap_blocks,
                    time_gap = time_gap, time_start = time_start)

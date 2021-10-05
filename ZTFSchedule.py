@@ -98,12 +98,13 @@ def ZTF_Schedule(prob, start_time, end_time, p = [0, 0.0025, 0.005, 0.0075, 0.01
                             nfield=nfield, time_limit_sales=time_limit_sales, time_limit_blocks=time_limit_blocks,
                             MIP_gap_blocks=MIP_gap_blocks, time_gap=time_gap)
 
-    filtIsg = startWithG
-    filt_list = []
-    for i, row in enumerate(result):
-        if row['filter_change']: filtIsg = not filtIsg
-        filt_list.append('g' if filtIsg else 'r')
+    if 'filter_change' in result.keys():
+        filtIsg = startWithG
+        filt_list = []
+        for i, row in enumerate(result):
+            if row['filter_change']: filtIsg = not filtIsg
+            filt_list.append('g' if filtIsg else 'r')
 
-    result['filt'] = filt_list
+        result['filt'] = filt_list
 
     return result
