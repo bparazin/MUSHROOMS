@@ -4,7 +4,7 @@ This is MUSHROOMS (Milp-Using ScHeduleR Of sky lOcalization MapS), a quick & lig
 follow-up of LIGO alerts and other MMA sources which provide healpix sky localization maps.
 This was originally designed for ZTF, hence the ZTFSchedule.py file, but with the right inputs, FullLoc.py is almost 
 fully telescope agnostic. Future development plans include a command-line parser and better handling of filters & 
-reobservations to make it fully telescope agnostic. 
+reobservations to make it fully telescope agnostic. This readme is slightly out of date, so take it with a grain of salt
 
 ## Required Packages:
 
