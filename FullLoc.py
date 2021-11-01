@@ -5,6 +5,7 @@ from tqdm.auto import tqdm
 import datetime as dt
 from gurobipy import GRB, Model
 from astropy.table import vstack
+from astropy.time import Time
 from astropy.table import QTable
 from ligo.skymap.io import read_sky_map
 from healpy.pixelfunc import ud_grade
@@ -272,7 +273,7 @@ def salesperson(field_list, slew_speed, slew_accel, time_limit=None):
 
 #This is the full-sky scheduler! It takes in all the parameters listed below and first solves the MILP for a fixed slew time, before breaking that list
 #of fields up into several blocks you observe once, switch filters, and repeat, optimizing slew time within each block
-def schedule_event(prob, start_time, end_time, exptime, fields, footprints_healpix, slew_speed, slew_accel, filttime,
+def schedule_contiguous_event(prob, start_time, end_time, exptime, fields, footprints_healpix, slew_speed, slew_accel, filttime,
                    site, constr,
                    p = [0, 0.0025, 0.005, 0.0075, 0.01, 0.02], b_max = 6, slew_time = 12 * u.s,
                    nfield = 100, time_limit_sales = 500, time_limit_blocks = 500, MIP_gap_blocks = None,
@@ -381,7 +382,7 @@ def schedule_event(prob, start_time, end_time, exptime, fields, footprints_healp
             filt_block.append(temp2)
         final_times += time_list
         filt_cng += filt_block
-    schedule_final['time'] = final_times * u.s + start_time #End up with observation time in jd (at least provided
+    schedule_final['time'] = final_times * u.s + start_time #End up with observation time in jd
     schedule_final['exposure'] = np.ones(np.shape(schedule_final['time'])) * exptime #right now everything is the same (provided) exposure time
     schedule_final['filter_change'] = filt_cng #Put in place so you know when to change filters, eventually will expand to better handle different filters
 
@@ -446,3 +447,72 @@ def schedule_event(prob, start_time, end_time, exptime, fields, footprints_healp
                    nfield = nfield, time_limit_sales = time_limit_sales,
                               time_limit_blocks = time_limit_blocks, MIP_gap_blocks = MIP_gap_blocks,
                    time_gap = time_gap, time_start = time_start)
+
+def schedule_event(prob, start_time, end_time, exptime, fields,
+                              footprints_healpix, slew_speed, slew_accel,
+                              filttime,
+                              site, constr,
+                              p=[0, 0.0025, 0.005, 0.0075, 0.01, 0.02],
+                              b_max=6, slew_time=12 * u.s,
+                              nfield=100, time_limit_sales=500,
+                              time_limit_blocks=500, MIP_gap_blocks=None,
+                              time_gap=None, time_start=None, nside=128):
+
+    start_time = Time(start_time.mjd, format = 'mjd')
+
+    observer = astroplan.Observer.at_site(site)
+
+    next_set = Time(observer.twilight_evening_astronomical(start_time, 'next').mjd, format = 'mjd')
+    next_rise = Time(observer.twilight_morning_astronomical(start_time, 'next').mjd, format = 'mjd')
+
+    if next_set - next_rise > 0 * u.s:
+        start_bound = start_time
+        end_bound = next_rise
+    else:
+        start_bound = next_set
+        end_bound = Time(observer.twilight_morning_astronomical(start_time,
+                                                          'next').mjd, format='mjd')
+    t_list = [(start_bound, end_bound)]
+
+    while(True):
+        start_bound = Time(observer.twilight_evening_astronomical(end_bound, 'next').mjd, format='mjd')
+        end_bound = Time(observer.twilight_morning_astronomical(start_bound, 'next').mjd, format='mjd')
+        if start_bound - end_time > 0 * u.s:
+            break
+        elif end_bound - end_time > 0 * u.s:
+            t_list.append((start_bound, end_time))
+            break
+        else:
+            t_list.append((start_bound, end_bound))
+
+    final_schedule = None
+
+    for (t_start, t_end) in t_list:
+        if final_schedule != None:
+            keep = []
+            for field in fields:
+                if field['field_id'] in final_schedule['field_id']:
+                    keep.append(False)
+                else:
+                    keep.append(True)
+            keep = np.asarray(keep)
+            fields = fields[keep]
+            footprints_healpix = [footprint for i, footprint in enumerate(footprints_healpix) if keep[i]]
+        temp_schedule = schedule_contiguous_event(prob, t_start, t_end, exptime, fields,
+                              footprints_healpix, slew_speed, slew_accel,
+                              filttime,
+                              site, constr,
+                              p=p,
+                              b_max=b_max, slew_time=slew_time,
+                              nfield=nfield, time_limit_sales=time_limit_sales,
+                              time_limit_blocks=time_limit_blocks, MIP_gap_blocks=MIP_gap_blocks,
+                              time_gap=time_gap, time_start=time_start, nside=nside)
+
+        if 'field_id' in temp_schedule.keys():
+            if final_schedule == None:
+                final_schedule = temp_schedule
+            else:
+                final_schedule = vstack([final_schedule, temp_schedule])
+
+    return final_schedule
+
